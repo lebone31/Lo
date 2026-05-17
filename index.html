@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Candle</title>
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    background: black;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, sans-serif;
+}
+
+/* WRAPPER */
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* PLATE */
+.plate {
+    width: 220px;
+    height: 25px;
+    background: linear-gradient(#e6e6e6, #bdbdbd);
+    border-radius: 50px;
+    box-shadow: 0 0 20px rgba(255,255,255,0.2);
+    margin-top: 10px;
+}
+
+/* CANDLE */
+.candle {
+    width: 85px;
+    height: 260px;
+    background: linear-gradient(#fff, #e0e0e0);
+    border-radius: 18px;
+    position: relative;
+    box-shadow: 0 0 35px rgba(255,255,255,0.25);
+}
+
+/* FLAME */
+.flame {
+    width: 34px;
+    height: 34px;
+    background: radial-gradient(circle, #fff7a0, orange, red);
+    border-radius: 50%;
+    position: absolute;
+    top: -45px;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 30px orange;
+    animation: flicker 0.15s infinite alternate;
+}
+
+@keyframes flicker {
+    from { transform: translateX(-50%) scale(1); }
+    to { transform: translateX(-50%) scale(1.25); }
+}
+
+/* BALLOONS (BIGGER NOW) */
+.balloon {
+    position: absolute;
+    bottom: -150px;
+    width: 45px;
+    height: 60px;
+    border-radius: 50%;
+    opacity: 0.9;
+    animation: floatUp 7s linear forwards;
+}
+
+@keyframes floatUp {
+    to {
+        transform: translateY(-130vh);
+    }
+}
+
+/* CONFETTI */
+.confetti {
+    position: fixed;
+    width: 10px;
+    height: 10px;
+    top: -10px;
+    animation: fall 2.5s linear forwards;
+    z-index: 5;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(110vh) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+/* POPUP */
+.popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    color: black;
+    padding: 25px 35px;
+    border-radius: 16px;
+    font-size: 22px;
+    display: none;
+    z-index: 10;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(255,255,255,0.3);
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrapper">
+    <div class="candle">
+        <div class="flame" id="flame"></div>
+    </div>
+    <div class="plate"></div>
+</div>
+
+<div class="popup" id="popup">🎂 Make a Wish 🎂</div>
+
+<script>
+let flame = document.getElementById("flame");
+let popup = document.getElementById("popup");
+let blown = false;
+
+/* BALLOONS (BIGGER + FEWER BUT BETTER LOOKING) */
+function balloons() {
+    for (let i = 0; i < 25; i++) {
+        let b = document.createElement("div");
+        b.className = "balloon";
+
+        b.style.left = Math.random() * 100 + "vw";
+        b.style.background = 
+            ["red","blue","yellow","green","purple","orange","pink"][Math.floor(Math.random()*7)];
+
+        b.style.animationDuration = (Math.random() * 4 + 4) + "s";
+
+        document.body.appendChild(b);
+
+        setTimeout(() => b.remove(), 9000);
+    }
+}
+
+/* CONFETTI */
+function confetti() {
+    for (let i = 0; i < 120; i++) {
+        let c = document.createElement("div");
+        c.className = "confetti";
+
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.background = ["red","yellow","blue","green","purple","pink"][Math.floor(Math.random()*6)];
+        c.style.animationDuration = (Math.random() * 2 + 1) + "s";
+
+        document.body.appendChild(c);
+
+        setTimeout(() => c.remove(), 3000);
+    }
+}
+
+/* MIC */
+navigator.mediaDevices.getUserMedia({ audio: true })
+.then(stream => {
+    const audioContext = new AudioContext();
+    const mic = audioContext.createMediaStreamSource(stream);
+
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+
+    mic.connect(analyser);
+
+    const data = new Uint8Array(analyser.fftSize);
+
+    function detect() {
+        analyser.getByteTimeDomainData(data);
+
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) {
+            let v = data[i] - 128;
+            sum += v * v;
+        }
+
+        let volume = Math.sqrt(sum / data.length);
+
+        if (volume > 12 && !blown) {
+            blown = true;
+
+            flame.style.display = "none";
+
+            popup.style.display = "block";
+            balloons();
+            confetti();
+
+            setTimeout(() => {
+                popup.style.display = "none";
+            }, 3500);
+        }
+
+        requestAnimationFrame(detect);
+    }
+
+    detect();
+})
+.catch(() => {
+    alert("Please allow microphone access to blow the candle.");
+});
+</script>
+
+</body>
+</html>
